@@ -88,8 +88,11 @@ td.bad code, td.good code { color: var(--ink); }
 td.bad ul, td.good ul { margin: 0; padding-left: 16px; display: grid; gap: 3px; }
 
 ul.notes { margin: 0; padding-left: 18px; display: grid; gap: 8px; max-width: 80ch; }
-ul.notes ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 4px; }
-#checks h3 { margin-top: 24px; }
+#caveats { display: grid; gap: 32px; }
+.eco { display: grid; gap: 12px; }
+table.caveats { min-width: 0; }
+table.caveats td:first-child { white-space: normal; width: 14rem; }
+table.caveats td ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
 
 /* Code blocks */
 .code { position: relative; background: var(--code-bg); border-left: 3px solid var(--band); min-width: 0; }
@@ -258,6 +261,7 @@ footer { border-color: var(--rule); color: var(--muted); }
     <li><a href="#tldr">TL;DR</a><span>What this is and what is included</span></li>
     <li><a href="#intro">The bug</a><span>What it is, its impact, its names and exploitation so far</span></li>
     <li><a href="#checks">Manual checks</a><span>One command per stack, with affected and fixed versions</span></li>
+    <li><a href="#caveats">Caveats per stack</a><span>Exceptions to the table: Python, Rust, RPM distros, scanners</span></li>
     <li><a href="#helper">Vulnerability checker</a><span>A read-only script that runs the same checks</span></li>
     <li><a href="#mitigate">If you can't upgrade today</a><span>What to block at the proxy</span></li>
     <li><a href="#sources">Sources</a><span>Vendor advisories and trackers behind the versions</span></li>
@@ -355,99 +359,6 @@ footer { border-color: var(--rule); color: var(--muted); }
         </tbody>
       </table>
     </div>
-    <h3>Notes by ecosystem</h3>
-    <ul class="notes">
-      <li><strong>Electron</strong>
-        <ul>
-          <li>Electron links Chromium's Brotli, not Node.js's, so the Node.js version inside an app tells you nothing.</li>
-          <li>Electron 42 is the first release built on Chromium 148, which carries the fix.</li>
-          <li>Each app ships its own Electron, so the only fix is a new build of the app.</li>
-        </ul>
-      </li>
-      <li><strong>curl</strong>
-        <ul>
-          <li><code>curl -V</code> prints the upstream Brotli version, even when a distro has patched the library. Judge a system curl by the OS package.</li>
-          <li><code>git</code> and other libcurl users inherit the same library.</li>
-        </ul>
-      </li>
-      <li><strong>.NET</strong>
-        <ul>
-          <li>PowerShell: 7.4, 7.5 and 7.6 are affected. Fixed in 7.4.22, 7.5.13 and 7.6.9.</li>
-          <li>Visual Studio: 2019 16.11 (fixed in 16.11.61), 2022 17.14 (17.14.43) and 2026 18.11 (18.11.2).</li>
-          <li>Visual Studio 2017 15.9 has no fixed build listed.</li>
-        </ul>
-      </li>
-      <li><strong>Python</strong>
-        <ul>
-          <li>Scrapy, flask-compress, selenium-wire and django-compression-middleware depend on Brotli directly.</li>
-          <li><code>urllib3</code> (and so <code>requests</code>), <code>httpx</code> and <code>aiohttp</code> pull it in only through extras: <code>urllib3[brotli]</code>, <code>httpx[brotli]</code>, <code>aiohttp[speedups]</code>. They still decode Brotli whenever it is importable.</li>
-          <li><code>pipdeptree -r -p Brotli,brotlicffi --extras active</code> (pipdeptree 3.0+) shows what pulls it in.</li>
-          <li>Wheels with their own Brotli: Pillow 13.0.0 wheels bundle libbrotli 1.2.0, and no fixed Pillow release exists yet. duckdb vendors an unfixed Brotli 1.1.0 decoder. The pip versions of these packages don't map to Brotli versions.</li>
-          <li>A distro-installed <code>python3-brotli</code> shows the upstream version even after patching. Use the OS row.</li>
-        </ul>
-      </li>
-      <li><strong>Java</strong>
-        <ul>
-          <li><code>jvmbrotli</code> (<code>com.nixxcode.jvmbrotli</code>) is abandoned and bundles Brotli 1.0.7. Replace it.</li>
-        </ul>
-      </li>
-      <li><strong>Ruby</strong>
-        <ul>
-          <li>From 0.4.0 the <code>brotli</code> gem links the system libbrotli if <code>libbrotli-dev</code> was present at install.</li>
-          <li>Those builds are fixed by the OS update.</li>
-        </ul>
-      </li>
-      <li><strong>Go</strong>
-        <ul>
-          <li>cbrotli has no C code of its own. cgo links the build host's libbrotli, so patch the OS library and restart.</li>
-          <li>Bazel builds compile <code>@org_brotli</code> from source. Move that to 1.2.1 and rebuild.</li>
-        </ul>
-      </li>
-      <li><strong>Rust</strong>
-        <ul>
-          <li><code>brotlic-sys</code> bundles Brotli 1.0.9.</li>
-          <li><code>compu-brotli-sys</code> 1.2.1 and 1.0.10 bundle the unfixed 1.2.0 and 1.0.9 decoders despite their version numbers. Its only fixed release, 1.2.0, is yanked.</li>
-          <li>Judge any other <code>-sys</code> crate by its vendored source: fixed code contains <code>BROTLI_DECODER_ERROR_FORMAT_BLOCK_SWITCH</code>.</li>
-          <li>Grep <code>Cargo.lock</code>, because plain <code>cargo tree</code> shows only the host target.</li>
-        </ul>
-      </li>
-      <li><strong>Node.js from Debian and Ubuntu packages</strong>
-        <ul>
-          <li>Debian's <code>nodejs</code> package, and Ubuntu's on 22.04 and later, use the system <code>libbrotli</code>. <code>node --version</code> alone tells you nothing there, so check the Debian / Ubuntu row.</li>
-          <li>Ubuntu 20.04's <code>nodejs</code> 10.19 bundles its own Brotli and has no fix. Updating <code>libbrotli1</code> doesn't cover it.</li>
-        </ul>
-      </li>
-      <li><strong>Debian bookworm</strong>
-        <ul>
-          <li>No fixed build for armel, mips64el, mipsel or s390x.</li>
-        </ul>
-      </li>
-      <li><strong>RHEL, AlmaLinux, Amazon Linux and SLE</strong>
-        <ul>
-          <li>They keep the old version number when they patch.</li>
-          <li>Compare the full release string (e.g. <code>1.0.9-10.el9_8.1</code>) against the vendor tracker, not the upstream version.</li>
-        </ul>
-      </li>
-      <li><strong>Bundled copies on RPM distros</strong>
-        <ul>
-          <li>Some packages bundle their own Brotli and won't show in <code>rpm -qa | grep brotli</code>.</li>
-          <li>Firefox, Thunderbird, and the RHEL 8/9 <code>nodejs:24</code> and <code>nodejs:26</code> modules.</li>
-          <li>On SUSE: ghostscript, qemu, ovmf, texlive and mozjs.</li>
-        </ul>
-      </li>
-      <li><strong>Scanners stay silent for several of these</strong>
-        <ul>
-          <li>No entry in the GitHub Advisory Database, OSV, the Go vulnerability database or RustSec for Bun, Brotli4j, the Ruby gem, curl_cffi, <code>andybalholm/brotli</code> and the Rust <code>-sys</code> crates.</li>
-          <li>Dependabot, OSV-Scanner, govulncheck, bundler-audit and cargo audit won't flag them.</li>
-        </ul>
-      </li>
-      <li><strong>Containers</strong>
-        <ul>
-          <li>Run the same checks inside every image you ship, for example <code>docker run --rm --network=none &lt;image&gt; node --version</code> (or <code>podman run</code>).</li>
-          <li>Updating the host does not fix an image. Rebuild it.</li>
-        </ul>
-      </li>
-    </ul>
   </section>
 
   <section class="read">
@@ -457,6 +368,136 @@ footer { border-color: var(--rule); color: var(--muted); }
   xargs -0 -r grep -L 'BROTLI_DECODER_ERROR_FORMAT_BLOCK_SWITCH'</pre></div>
     <p class="muted">Copies older than 1.0.3 also show up but are not affected.</p>
     <p class="muted">The Debian and Ubuntu security patches add the same error name. Compiled libraries show it as <code>_ERROR_FORMAT_BLOCK_SWITCH</code> (1.1 and later) or a bare <code>BLOCK_SWITCH</code> (1.0.x). Still judge OS packages by version.</p>
+  </section>
+
+  <section id="caveats">
+    <h2>Caveats per stack</h2>
+    <p class="muted read">Exceptions to the table above. Read the rows for the stacks you run.</p>
+    <div class="eco">
+      <h3>Electron</h3>
+      <div class="table-scroll">
+        <table class="caveats">
+          <thead><tr><th>Case</th><th>What to know</th></tr></thead>
+          <tbody>
+            <tr><td>Whose Brotli</td><td><ul><li>Electron links Chromium's Brotli, not Node.js's.</li><li>The Node.js version inside an app tells you nothing.</li></ul></td></tr>
+            <tr><td>Fixed in</td><td><ul><li>Electron 42 is the first release built on Chromium 148, which carries the fix.</li></ul></td></tr>
+            <tr><td>Fix</td><td><ul><li>Each app ships its own Electron, so the only fix is a new build of the app.</li></ul></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="eco">
+      <h3>curl</h3>
+      <div class="table-scroll">
+        <table class="caveats">
+          <thead><tr><th>Case</th><th>What to know</th></tr></thead>
+          <tbody>
+            <tr><td>Version output</td><td><ul><li><code>curl -V</code> prints the upstream Brotli version, even when a distro has patched the library.</li><li>Judge a system curl by the OS package.</li></ul></td></tr>
+            <tr><td>Other users</td><td><ul><li><code>git</code> and other libcurl users inherit the same library.</li></ul></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="eco">
+      <h3>.NET</h3>
+      <div class="table-scroll">
+        <table class="caveats">
+          <thead><tr><th>Case</th><th>What to know</th></tr></thead>
+          <tbody>
+            <tr><td>PowerShell</td><td><ul><li>7.4, 7.5 and 7.6 are affected.</li><li>Fixed in 7.4.22, 7.5.13 and 7.6.9.</li></ul></td></tr>
+            <tr><td>Visual Studio</td><td><ul><li>2019 16.11: fixed in 16.11.61</li><li>2022 17.14: fixed in 17.14.43</li><li>2026 18.11: fixed in 18.11.2</li><li>2017 15.9: no fixed build listed</li></ul></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="eco">
+      <h3>Python</h3>
+      <div class="table-scroll">
+        <table class="caveats">
+          <thead><tr><th>Case</th><th>What to know</th></tr></thead>
+          <tbody>
+            <tr><td>Direct dependents</td><td><ul><li>Scrapy, flask-compress, selenium-wire and django-compression-middleware depend on Brotli directly.</li></ul></td></tr>
+            <tr><td>Through extras</td><td><ul><li><code>urllib3</code> (and so <code>requests</code>), <code>httpx</code> and <code>aiohttp</code> pull it in only through extras: <code>urllib3[brotli]</code>, <code>httpx[brotli]</code>, <code>aiohttp[speedups]</code>.</li><li>They still decode Brotli whenever it is importable.</li><li><code>pipdeptree -r -p Brotli,brotlicffi --extras active</code> (pipdeptree 3.0+) shows what pulls it in.</li></ul></td></tr>
+            <tr><td>Wheels with their own Brotli</td><td><ul><li>Pillow 13.0.0 wheels bundle libbrotli 1.2.0, and no fixed Pillow release exists yet.</li><li>duckdb vendors an unfixed Brotli 1.1.0 decoder.</li><li>The pip versions of these packages don't map to Brotli versions.</li></ul></td></tr>
+            <tr><td>Distro <code>python3-brotli</code></td><td><ul><li>Shows the upstream version even after patching.</li><li>Use the OS row.</li></ul></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="eco">
+      <h3>Java</h3>
+      <div class="table-scroll">
+        <table class="caveats">
+          <thead><tr><th>Case</th><th>What to know</th></tr></thead>
+          <tbody>
+            <tr><td><code>jvmbrotli</code></td><td><ul><li><code>com.nixxcode.jvmbrotli</code> is abandoned and bundles Brotli 1.0.7.</li><li>Replace it.</li></ul></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="eco">
+      <h3>Ruby</h3>
+      <div class="table-scroll">
+        <table class="caveats">
+          <thead><tr><th>Case</th><th>What to know</th></tr></thead>
+          <tbody>
+            <tr><td><code>brotli</code> gem</td><td><ul><li>From 0.4.0 it links the system libbrotli if <code>libbrotli-dev</code> was present at install.</li><li>Those builds are fixed by the OS update.</li></ul></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="eco">
+      <h3>Go</h3>
+      <div class="table-scroll">
+        <table class="caveats">
+          <thead><tr><th>Case</th><th>What to know</th></tr></thead>
+          <tbody>
+            <tr><td>cbrotli</td><td><ul><li>Has no C code of its own. cgo links the build host's libbrotli.</li><li>Patch the OS library and restart.</li></ul></td></tr>
+            <tr><td>Bazel</td><td><ul><li>Builds compile <code>@org_brotli</code> from source.</li><li>Move it to 1.2.1 and rebuild.</li></ul></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="eco">
+      <h3>Rust</h3>
+      <div class="table-scroll">
+        <table class="caveats">
+          <thead><tr><th>Case</th><th>What to know</th></tr></thead>
+          <tbody>
+            <tr><td><code>brotlic-sys</code></td><td><ul><li>Bundles Brotli 1.0.9.</li></ul></td></tr>
+            <tr><td><code>compu-brotli-sys</code></td><td><ul><li>1.2.1 and 1.0.10 bundle the unfixed 1.2.0 and 1.0.9 decoders despite their version numbers.</li><li>Its only fixed release, 1.2.0, is yanked.</li></ul></td></tr>
+            <tr><td>Other <code>-sys</code> crates</td><td><ul><li>Judge them by their vendored source: fixed code contains <code>BROTLI_DECODER_ERROR_FORMAT_BLOCK_SWITCH</code>.</li><li>Grep <code>Cargo.lock</code>, because plain <code>cargo tree</code> shows only the host target.</li></ul></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="eco">
+      <h3>Linux and OS packages</h3>
+      <div class="table-scroll">
+        <table class="caveats">
+          <thead><tr><th>Case</th><th>What to know</th></tr></thead>
+          <tbody>
+            <tr><td>Debian and Ubuntu <code>nodejs</code></td><td><ul><li>Debian's package, and Ubuntu's on 22.04 and later, use the system <code>libbrotli</code>.</li><li><code>node --version</code> alone tells you nothing there. Check the Debian / Ubuntu row.</li></ul></td></tr>
+            <tr><td>Ubuntu 20.04 <code>nodejs</code></td><td><ul><li>10.19 bundles its own Brotli and has no fix.</li><li>Updating <code>libbrotli1</code> doesn't cover it.</li></ul></td></tr>
+            <tr><td>Debian bookworm</td><td><ul><li>No fixed build for armel, mips64el, mipsel or s390x.</li></ul></td></tr>
+            <tr><td>RHEL, AlmaLinux, Amazon Linux, SLE</td><td><ul><li>They keep the old version number when they patch.</li><li>Compare the full release string (e.g. <code>1.0.9-10.el9_8.1</code>) against the vendor tracker, not the upstream version.</li></ul></td></tr>
+            <tr><td>Bundled copies on RPM distros</td><td><ul><li>Some packages bundle their own Brotli and won't show in <code>rpm -qa | grep brotli</code>.</li><li>Firefox, Thunderbird, and the RHEL 8/9 <code>nodejs:24</code> and <code>nodejs:26</code> modules.</li><li>On SUSE: ghostscript, qemu, ovmf, texlive and mozjs.</li></ul></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="eco">
+      <h3>Scanners and containers</h3>
+      <div class="table-scroll">
+        <table class="caveats">
+          <thead><tr><th>Case</th><th>What to know</th></tr></thead>
+          <tbody>
+            <tr><td>Silent scanners</td><td><ul><li>Bun, Brotli4j, the Ruby gem, curl_cffi, <code>andybalholm/brotli</code> and the Rust <code>-sys</code> crates have no entry in the GitHub Advisory Database, OSV, the Go vulnerability database or RustSec.</li><li>Dependabot, OSV-Scanner, govulncheck, bundler-audit and cargo audit won't flag them.</li></ul></td></tr>
+            <tr><td>Container images</td><td><ul><li>Run the same checks inside every image you ship, for example <code>docker run --rm --network=none &lt;image&gt; node --version</code> (or <code>podman run</code>).</li><li>Updating the host does not fix an image. Rebuild it.</li></ul></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </section>
 
   <section class="read" id="helper">
