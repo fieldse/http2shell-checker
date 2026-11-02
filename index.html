@@ -405,7 +405,7 @@ footer { border-color: var(--rule); color: var(--muted); }
           <thead><tr><th>Case</th><th>What to know</th></tr></thead>
           <tbody>
             <tr><td>PowerShell</td><td><ul><li>7.4, 7.5 and 7.6 are affected.</li><li>Fixed in 7.4.22, 7.5.13 and 7.6.9.</li></ul></td></tr>
-            <tr><td>Visual Studio</td><td><ul><li>2019 16.11: fixed in 16.11.61</li><li>2022 17.14: fixed in 17.14.43</li><li>2026 18.11: fixed in 18.11.2</li><li>2017 15.9: no fixed build listed</li></ul></td></tr>
+            <tr><td>Visual Studio</td><td><ul><li>2019 16.11: fixed in 16.11.61</li><li>2022 17.14: fixed in 17.14.43</li><li>2026 18.11: fixed in 18.11.2</li><li>2017 15.9: no fixed build listed</li><li>Build numbers come from Microsoft's fixed-build list (MSRC).</li></ul></td></tr>
           </tbody>
         </table>
       </div>
@@ -419,7 +419,7 @@ footer { border-color: var(--rule); color: var(--muted); }
             <tr><td>Direct dependents</td><td><ul><li>Scrapy, flask-compress, selenium-wire and django-compression-middleware depend on Brotli directly.</li></ul></td></tr>
             <tr><td>Through extras</td><td><ul><li><code>urllib3</code> (and so <code>requests</code>), <code>httpx</code> and <code>aiohttp</code> pull it in only through extras: <code>urllib3[brotli]</code>, <code>httpx[brotli]</code>, <code>aiohttp[speedups]</code>.</li><li>They still decode Brotli whenever it is importable.</li><li><code>pipdeptree -r -p Brotli,brotlicffi --extras active</code> (pipdeptree 3.0+) shows what pulls it in.</li></ul></td></tr>
             <tr><td>Wheels with their own Brotli</td><td><ul><li>Pillow 13.0.0 wheels bundle libbrotli 1.2.0, and no fixed Pillow release exists yet.</li><li>duckdb vendors Brotli 1.1.0, below the fixed 1.1.1.</li><li>The pip versions of these packages don't map to Brotli versions.</li></ul></td></tr>
-            <tr><td>Distro <code>python3-brotli</code></td><td><ul><li>Shows the upstream version even after patching.</li><li>Use the OS row.</li></ul></td></tr>
+            <tr><td>Distro <code>python3-brotli</code></td><td><ul><li>Shows the upstream version even after patching.</li><li>Use the OS row.</li><li>Debian's <code>python-brotlicffi</code> is affected too: trixie is vulnerable, forky and sid are fixed.</li></ul></td></tr>
           </tbody>
         </table>
       </div>
