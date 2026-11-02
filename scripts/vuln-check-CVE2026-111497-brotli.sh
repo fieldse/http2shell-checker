@@ -503,6 +503,8 @@ function build_index() {
          -o -name 'libbrotlidec*.a' -o -name '_brotli*.so' \
          -o -path '*/brotlicffi/*.so' -o -path '*/curl_cffi/*.so' -o -name decode.c -o -name decode.cpp \
          -o -name poetry.lock -o -name uv.lock -o -name pdm.lock -o -name 'requirements*.txt' \
+         -o -name 'constraints*.txt' -o -name Pipfile.lock -o -name pyproject.toml \
+         -o \( -name '*.txt' \( -path '*/requirements/*' -o -path '*/reqs/*' -o -path '*/requirement/*' -o -path '*/deps/*' \) \) \
          -o -path '*/auto/IO/Compress/Brotli/Brotli.bundle' -o -path '*/auto/IO/Compress/Brotli/Brotli.so' \
          -o -name 'Electron Framework' \) -print \) -o \
       \( -type f -name node -perm -u+x -print \) \
@@ -689,10 +691,82 @@ function scan_python_extensions() {
   return 0
 }
 
-# Judge pinned PyPI versions in requirements files and poetry.lock / uv.lock / pdm.lock
+# Judge one requirement spec (for example "==1.0.9" or ">=1"): exact pins get a version verdict, the rest a WARN
+function pin_judge() {
+  local name="$1" rest="$2" where="$3" ver
+  if [[ "$rest" == ==* ]]; then
+    ver=${rest#==}
+    py_judge "$name" "${ver// /}" "$where"
+  else
+    emit WARN "$name [$where] requirement '${rest:-unpinned}' is not an exact pin, check the installed version"
+  fi
+}
+
+# Print "name spec" for each tracked package in the dependency tables of a pyproject.toml (PEP 621, dependency groups, poetry)
+function pyproject_pins() {
+  awk '
+    function emit_pin(nm, sp) { gsub(/[ \t]/, "", sp); print nm, sp }
+    function unquote(str) { sub(/^"/, "", str); sub(/"$/, "", str); return str }
+    { sub(/\r$/, "") }
+    /^[ \t]*\[/ {
+      sec = $0; gsub(/[ \t]/, "", sec); gsub(/\[/, "", sec); gsub(/\]/, "", sec); sec = tolower(sec)
+      pt = (sec ~ /^tool\.poetry\.(dev-)?dependencies$/ || sec ~ /^tool\.poetry\.group\.[^.]+\.dependencies$/)
+      all = (sec == "project.optional-dependencies" || sec == "dependency-groups")
+      arr = (sec == "project" || sec == "tool.uv")
+      indeps = 0; depth = 0
+      next
+    }
+    /^[ \t]*#/ { next }
+    pt {
+      l = tolower($0)
+      if (match(l, /^[ \t]*(brotli|brotlicffi|curl[-_]cffi)[ \t]*=/)) {
+        key = substr(l, RSTART, RLENGTH); sub(/[ \t]*=$/, "", key); gsub(/[ \t]/, "", key); gsub(/_/, "-", key)
+        r = substr($0, RLENGTH + 1); sp = ""
+        if (match(r, /version[ \t]*=[ \t]*"[^"]*"/)) { sp = substr(r, RSTART, RLENGTH); sub(/^[^"]*"/, "", sp); sub(/".*$/, "", sp) }
+        else if (match(r, /^[ \t]*"[^"]*"/)) { sp = substr(r, RSTART, RLENGTH); gsub(/[ \t]/, "", sp); sp = unquote(sp) }
+        if (sp ~ /^[0-9]/) sp = "==" sp
+        emit_pin(key, sp)
+      }
+      next
+    }
+    arr && !indeps && /^[ \t]*[A-Za-z-]*dependencies[ \t]*=/ { indeps = 1; depth = 0 }
+    all || indeps {
+      l = tolower($0); rest = l
+      while (match(rest, /"[^"]*"/)) {
+        str = unquote(substr(rest, RSTART, RLENGTH)); rest = substr(rest, RSTART + RLENGTH)
+        sub(/^[ \t]+/, "", str)
+        if (str ~ /^(brotli|brotlicffi|curl[-_]cffi)[ \t]*([=<>~!;[]|$)/) {
+          match(str, /^[A-Za-z0-9_.-]+/); nm = substr(str, 1, RLENGTH); gsub(/_/, "-", nm)
+          sp = substr(str, RLENGTH + 1); sub(/^[ \t]*\[[^]]*\]/, "", sp); sub(/;.*$/, "", sp)
+          emit_pin(nm, sp)
+        }
+      }
+      if (indeps) {
+        o = gsub(/\[/, "[", l); c = gsub(/\]/, "]", l); depth += o - c
+        if (depth <= 0) indeps = 0
+      }
+    }
+  ' "$1" 2>/dev/null || true
+}
+
+# Print "name spec" for each tracked package in a Pipfile.lock
+function pipfile_lock_pins() {
+  tr -d '\r' < "$1" 2>/dev/null | awk '
+    match(tolower($0), /^[ \t]*"(brotli|brotlicffi|curl[-_]cffi)"[ \t]*:[ \t]*\{/) {
+      n = tolower(substr($0, RSTART, RLENGTH)); sub(/^[ \t]*"/, "", n); sub(/".*$/, "", n); gsub(/_/, "-", n)
+    }
+    n != "" && /"version"[ \t]*:/ {
+      v = $0; sub(/^.*"version"[ \t]*:[ \t]*"/, "", v); sub(/".*$/, "", v); gsub(/[ \t]/, "", v)
+      print n, v; n = ""; next
+    }
+    /\}/ { n = "" }
+  ' || true
+}
+
+# Judge pinned PyPI versions in requirements/constraints files, pyproject.toml, Pipfile.lock and poetry.lock / uv.lock / pdm.lock
 function scan_python_pins() {
-  local list p line name rest ver n v
-  list=$(idx '/requirements[^/]*\.txt$')
+  local list p line name rest n v
+  list=$(idx '/(requirements|constraints)[^/]*\.txt$|/(requirements|reqs|requirement|deps)/.*\.txt$')
   while IFS= read -r p; do
     [[ -n "$p" ]] || continue
     tr -d '\r' < "$p" 2>/dev/null | sed 's/[[:space:]]*\\$//' |
@@ -701,13 +775,24 @@ function scan_python_pins() {
       [[ -n "$line" ]] || continue
       name=$(norm_name "$(printf '%s\n' "$line" | sed -E 's/^[[:space:]]*([A-Za-z0-9_.-]+).*/\1/')")
       rest=$(printf '%s\n' "$line" | sed -E 's/^[[:space:]]*[A-Za-z0-9_.-]+[[:space:]]*(\[[^]]*\])?[[:space:]]*//; s/[[:space:]]*(;|#|--hash).*$//')
-      if [[ "$rest" == ==* ]]; then
-        ver=${rest#==}
-        py_judge "$name" "${ver// /}" "$p"
-      else
-        emit WARN "$name [$p] requirement '${rest:-unpinned}' is not an exact pin, check the installed version"
-      fi
+      pin_judge "$name" "$rest" "$p"
     done < "$WORK/req.lines"
+  done <<< "$list"
+  list=$(idx '/pyproject\.toml$')
+  while IFS= read -r p; do
+    [[ -n "$p" ]] || continue
+    while read -r name rest; do
+      [[ -n "$name" ]] || continue
+      pin_judge "$name" "$rest" "$p"
+    done <<< "$(pyproject_pins "$p")"
+  done <<< "$list"
+  list=$(idx '/Pipfile\.lock$')
+  while IFS= read -r p; do
+    [[ -n "$p" ]] || continue
+    while read -r name rest; do
+      [[ -n "$name" ]] || continue
+      pin_judge "$name" "$rest" "$p"
+    done <<< "$(pipfile_lock_pins "$p")"
   done <<< "$list"
   list=$(idx '/(poetry|uv|pdm)\.lock$')
   while IFS= read -r p; do

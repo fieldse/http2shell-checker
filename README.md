@@ -97,7 +97,7 @@ The check numbers are stable.
 | 04 | .NET runtimes |
 | 05 | Python dist-info and egg-info metadata |
 | 06 | Python compiled extensions and Perl `IO::Compress::Brotli` |
-| 07 | Python pins in requirements files, poetry.lock, uv.lock, pdm.lock |
+| 07 | Python pins in requirements and constraints files, pyproject.toml, Pipfile.lock, poetry.lock, uv.lock, pdm.lock |
 | 08 | Host Python packages |
 | 09 | npm middleware that decodes Brotli |
 | 10 | Java brotli4j |
