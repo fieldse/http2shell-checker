@@ -19,7 +19,7 @@
 ## Safety
 
 - **Read-only:** it reads files and changes nothing on your system.
-- **No network:** container probes run with `--network=none` and never pull images.
+- **No network:** container probes run with `--network=none` and never pull images. They also run read-only, with no new privileges, all capabilities dropped, 256 processes and 512 MB of memory. Untagged images are probed by ID, and any still shown as `<none>` are reported as SKIP.
 - **Runs only version commands,** such as `node --version` for tools on your PATH. It never runs anything it finds under the scan directories.
 - **Needs bash 3.2 or later** on macOS or Linux. No root needed.
 

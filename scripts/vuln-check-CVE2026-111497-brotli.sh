@@ -34,6 +34,8 @@ FIX_MARKER_RE='_ERROR_FORMAT_BLOCK_SWITCH|^BLOCK_SWITCH$'
 FIX_MARKER_SRC="BROTLI_DECODER_ERROR_FORMAT_BLOCK_SWITCH"
 # Seconds to wait for "docker info" / "podman info" before treating the engine as down.
 ENGINE_TIMEOUT=5
+# Restrictions on every probe container (docker and podman both accept these); the probe writes nothing.
+PROBE_FLAGS=(--network=none --pull=never --cap-drop=ALL --read-only --security-opt=no-new-privileges --pids-limit 256 --memory 512m)
 # find -path patterns no walk enters, one per line.
 BUILTIN_PRUNE='*/.git
 */.Trash
@@ -1300,13 +1302,17 @@ function apply_probe() {
   return 0
 }
 
-# Probe every listed local image with the chosen engine, networking off
+# Probe every listed local image with the chosen engine under PROBE_FLAGS; untagged images are listed by ID
 function check_containers() {
   local img probe
   probe=$(probe_script)
   while IFS= read -r img; do
-    [[ -n "$img" && "$img" != *"<none>"* ]] || continue
-    if "$ENGINE" run --rm --network=none --pull=never --cap-drop=ALL --entrypoint sh "$img" -c "$probe" \
+    [[ -n "$img" ]] || continue
+    if [[ "$img" == *"<none>"* ]]; then
+      emit SKIP "image:$img untagged, not inspected (probe by ID with --image)"
+      continue
+    fi
+    if "$ENGINE" run --rm "${PROBE_FLAGS[@]}" --entrypoint sh "$img" -c "$probe" \
         > "$WORK/probe.out" 2>/dev/null < /dev/null; then
       emit INFO "image:$img probed"
       apply_probe "$img" "$WORK/probe.out"
@@ -1387,7 +1393,7 @@ function preflight_containers() {
     printf '%s' "$IMAGES" > "$WORK/images.txt"
     return 0
   fi
-  "$ENGINE" images --format '{{.Repository}}:{{.Tag}}' > "$WORK/images.txt" 2>"$WORK/engine.err" ||
+  "$ENGINE" images --format '{{if eq .Tag "<none>"}}{{.ID}}{{else}}{{.Repository}}:{{.Tag}}{{end}}' > "$WORK/images.txt" 2>"$WORK/engine.err" ||
     die "$ENGINE images failed: $(head -1 "$WORK/engine.err")"
 }
 
