@@ -17,6 +17,8 @@ ISTIO_FIXED="1.29=1.29.9 1.30=1.30.6 1.31=1.31.2"
 ELECTRON_FIXED="42=42.0.0 43=43.0.0 44=44.0.0 45=45.0.0"
 # First upstream release with the flawed decoder code.
 BROTLI_FIRST_AFFECTED="1.0.3"
+# First Bun release with the flawed decoder code (GHSA-663w-cv8g-jj2p).
+BUN_FIRST_AFFECTED="1.0.21"
 BROTLI_DEB_FIXED="1.0.9-2+deb12u1 1.1.0-2+deb13u1 1.2.0-4.1"
 # Debian suite builds the security tracker lists as vulnerable (binNMU suffixes included).
 BROTLI_DEB_VULN='^(1\.0\.9-2|1\.1\.0-2|1\.2\.0-4)(\+b[0-9]+)?$'
@@ -417,7 +419,12 @@ function links_libbrotli() {
 function judge_runtime_version() {
   case "$1" in
     node) judge_branched node "$2" "$3" "$NODE_FIXED" 1 FAIL FAIL ;;
-    bun) judge bun "$2" "$3" 1.4.4 FAIL "rebuild bun build --compile executables" ;;
+    bun)
+      if [[ "$(ver_cmp "$3" "$BUN_FIRST_AFFECTED")" == "-1" ]]; then
+        emit INFO "bun [$2] found $3, older than the first affected release $BUN_FIRST_AFFECTED"
+      else
+        judge bun "$2" "$3" 1.4.4 FAIL "rebuild bun build --compile executables"
+      fi ;;
   esac
 }
 
@@ -1144,7 +1151,7 @@ function list_os_packages() {
     apk info -v 2>/dev/null | grep -E '^(py3-)?brotli[a-z-]*-[0-9]' | sed -n 's/^\(.*\)-\([0-9][^-]*-r[0-9]*\)$/apk \1 \2/p' || true
   fi
   if have_cmd rpm; then
-    rpm -qa --qf 'rpm %{NAME} %{VERSION}-%{RELEASE}\n' 2>/dev/null | grep -E '^rpm (brotli|libbrotli|python3-brotli )' || true
+    rpm -qa --qf 'rpm %{NAME} %{VERSION}-%{RELEASE}\n' 2>/dev/null | grep -E '^rpm (brotli|libbrotli|python3-brotli) ' || true
   fi
   if have_cmd pacman; then
     pacman -Q brotli 2>/dev/null | sed 's/^/pacman /' || true
@@ -1263,7 +1270,7 @@ if command -v apk >/dev/null 2>&1; then
   apk info -v 2>/dev/null | grep -E '^(py3-)?brotli[a-z-]*-[0-9]' | sed -n 's/^\(.*\)-\([0-9][^-]*-r[0-9]*\)$/PKG apk \1 \2/p'
 fi
 if command -v rpm >/dev/null 2>&1; then
-  rpm -qa --qf 'PKG rpm %{NAME} %{VERSION}-%{RELEASE}\n' 2>/dev/null | grep -E '^PKG rpm (brotli|libbrotli|python3-brotli )'
+  rpm -qa --qf 'PKG rpm %{NAME} %{VERSION}-%{RELEASE}\n' 2>/dev/null | grep -E '^PKG rpm (brotli|libbrotli|python3-brotli) '
 fi
 exit 0
 EOF
