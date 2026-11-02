@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>HTTP2Shell: Brotli decoder CVE - Are you affected?</title>
-<meta name="description" content="Is your stack affected by the Brotli decoder flaw CVE-2026-111497 (Node2Shell, HTTP2Shell, Python2Shell, Brotli2Shell, Brotlipocalypse)? One check per stack, fixed versions and an automated checker script.">
+<meta name="description" content="Is your stack affected by the Brotli decoder flaw CVE-2026-111497 (Node2Shell, HTTP2Shell, Python2Shell, Brotli2Shell, Brotlipocalypse)? One check per stack, fixed versions and a vulnerability checker script.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
@@ -167,7 +167,7 @@ code { background: var(--code-bg); color: #e4e4e7; border: 1px solid var(--rule)
 dl.intro { border: 1px solid var(--rule); border-radius: 12px; background: var(--paper); padding: 4px 28px; }
 dl.intro dt, dl.intro dd { border-color: var(--rule); padding-block: 20px; }
 dl.intro > :nth-last-child(-n+2) { border-bottom: 0; }
-dl.intro dt { font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--primary); padding-top: 24px; }
+dl.intro dt { font-size: 18px; font-weight: 700; color: var(--primary); padding-top: 22px; }
 dl.intro li::marker { color: var(--primary); }
 
 /* Tables in rounded cards */
@@ -201,7 +201,7 @@ ul.sources li::marker, ul.notes li::marker, ul.plain li::marker { color: var(--p
 .facts span { color: var(--muted); font-size: 15px; }
 @media (max-width: 640px) { .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 nav.toc { border: 1px solid var(--rule); border-radius: 12px; background: var(--paper); padding: 20px 28px; max-width: none; }
-nav.toc h2 { font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--primary); margin-bottom: 10px; }
+nav.toc h2 { font-size: 18px; font-weight: 700; letter-spacing: 0; text-transform: none; color: var(--primary); margin-bottom: 10px; }
 nav.toc ol { display: block; list-style: none; padding-left: 0; columns: 2; column-gap: 48px; counter-reset: toc; }
 nav.toc li { counter-increment: toc; display: flex; gap: 14px; padding: 5px 0; break-inside: avoid; }
 nav.toc li::before { content: counter(toc, decimal-leading-zero); font: 500 13px/1.75 var(--mono); color: var(--primary); }
@@ -246,20 +246,30 @@ footer { border-color: var(--rule); color: var(--muted); }
     <a class="back" href="tests.html">Testing methodology →</a>
     <p class="ids"><b>CVE-2026-111497</b> &nbsp;·&nbsp; Dev check &nbsp;·&nbsp; <a href="tests.html">Tests</a></p>
     <h1><span class='hl'>HTTP2Shell</span>: Brotli decoder CVE<br>Are you affected?</h1>
-    <p>Attackers are exploiting a bug in Google's Brotli decoder that lets crafted compressed data crash a server, leak memory or run code, with no login. If your service runs on Node.js, Bun, Python, .NET, Java, curl or Envoy, you may be affected. <a href="#checks">Read here</a> about how to remediate.</p>
+    <p>Attackers are exploiting a bug in Google's Brotli decoder that lets crafted compressed data crash a server, leak memory or run code, with no login. If your service runs on Node.js, Bun, Electron, Python, .NET, Java or curl, you may be affected. <a href="#checks">Jump to the checks</a>.</p>
   </div>
 </header>
 
 <main class="wrap">
 
   <nav class="toc read" aria-label="Contents"><h2>Contents</h2><ol>
+    <li><a href="#tldr">TL;DR</a><span>What this is and what is included</span></li>
     <li><a href="#intro">The bug</a><span>What it is, its impact, its names and exploitation so far</span></li>
     <li><a href="#checks">Manual checks</a><span>One command per stack, with affected and fixed versions</span></li>
-    <li><a href="#helper">Automated checker</a><span>A read-only script that runs the same checks</span></li>
+    <li><a href="#helper">Vulnerability checker</a><span>A read-only script that runs the same checks</span></li>
     <li><a href="#mitigate">If you can't upgrade today</a><span>What to block at the proxy</span></li>
     <li><a href="#sources">Sources</a><span>Vendor advisories and trackers behind the versions</span></li>
     <li><a href="#resources">Resources</a><span>Further reading</span></li>
   </ol></nav>
+
+  <section id="tldr">
+    <h2>TL;DR</h2>
+    <ul class="notes">
+      <li><strong>What this is:</strong> A guide and vulnerability checker for CVE-2026-111497, a critical flaw in Google's Brotli decoder that allows remote code execution across multiple ecosystems. It is under active attack.</li>
+      <li><strong>Remediation guide:</strong> A check command and the fixed version for each stack.</li>
+      <li><strong>Vulnerability checker:</strong> A read-only tool that scans your system and reports any vulnerable package versions found. <a href="#helper">Jump to the checker</a>.</li>
+    </ul>
+  </section>
 
   <section id="intro">
     <h2>The bug</h2>
@@ -310,6 +320,9 @@ footer { border-color: var(--rule); color: var(--muted); }
           <tr><td>Bun</td><td class="check"><div class="cmd"><code>bun --version</code><button type="button" class="copy" aria-label="Copy command" title="Copy"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M3.5 11H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button></div></td>
             <td class="bad"><ul><li>1.0.21 to below 1.4.4</li></ul></td>
             <td class="good"><ul><li>1.4.4</li><li>Rebuild <code>bun build --compile</code> binaries</li></ul></td></tr>
+          <tr><td>Electron</td><td class="check"><div class="cmd"><code>npm ls electron</code><button type="button" class="copy" aria-label="Copy command" title="Copy"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M3.5 11H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button></div><span class="muted">in your app's repo</span><div class="cmd"><code>plutil -extract CFBundleVersion raw -o - "/Applications/NAME.app/Contents/Frameworks/Electron Framework.framework/Resources/Info.plist"</code><button type="button" class="copy" aria-label="Copy command" title="Copy"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M3.5 11H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button></div><span class="muted">an installed macOS app</span></td>
+            <td class="bad"><ul><li>Any release below 42.0.0</li></ul></td>
+            <td class="good"><ul><li>42.0.0 or later</li><li>Rebuild and ship the app. For apps you only use, wait for the vendor's update</li></ul></td></tr>
           <tr><td>.NET</td><td class="check"><div class="cmd"><code>dotnet --list-runtimes</code><button type="button" class="copy" aria-label="Copy command" title="Copy"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M3.5 11H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button></div><span class="muted">compare runtime versions</span></td>
             <td class="bad"><ul><li>8 below 8.0.33</li><li>9 below 9.0.22</li><li>10 below 10.0.14</li><li>11 previews and RCs before 11.0.0-rc.3.26522.148</li></ul></td>
             <td class="good"><ul><li>8.0.33, 9.0.22 or 10.0.14</li><li>11.0.0-rc.3.26522.148</li><li>Rebuild self-contained and NativeAOT apps</li></ul></td></tr>
@@ -328,6 +341,9 @@ footer { border-color: var(--rule); color: var(--muted); }
           <tr><td>Rust</td><td class="check"><div class="cmd"><code>grep -i brotli Cargo.lock</code><button type="button" class="copy" aria-label="Copy command" title="Copy"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M3.5 11H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button></div></td>
             <td class="bad"><ul><li><code>brotlic-sys</code> 0.2.2 or earlier (via <code>brotlic</code> 0.8.2 or earlier)</li><li><code>compu-brotli-sys</code> 1.2.1 or 1.0.10</li><li>Any other <code>-sys</code> crate that vendors an unfixed decoder</li><li>Not affected: pure-Rust <code>brotli</code>, <code>brotli-decompressor</code></li></ul></td>
             <td class="good"><ul><li>Move to the pure-Rust crates</li><li>No fixed <code>-sys</code> release on crates.io</li></ul></td></tr>
+          <tr><td>curl</td><td class="check"><div class="cmd"><code>curl -V | grep -io 'brotli/[0-9.]*'</code><button type="button" class="copy" aria-label="Copy command" title="Copy"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M3.5 11H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button></div></td>
+            <td class="bad"><ul><li>brotli/1.0.3 to 1.2.0</li></ul><span class="muted">No <code>brotli/</code> in the output: not affected</span></td>
+            <td class="good"><ul><li>Patch the OS <code>libbrotli</code> and restart (see the Linux rows)</li><li>Builds with their own Brotli: upgrade curl</li></ul></td></tr>
           <tr><td>Debian / Ubuntu</td><td class="check"><div class="cmd"><code>dpkg -l | grep brotli</code><button type="button" class="copy" aria-label="Copy command" title="Copy"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M3.5 11H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button></div></td>
             <td class="bad"><ul><li>Debian bookworm: below 1.0.9-2+deb12u1</li><li>Debian trixie: below 1.1.0-2+deb13u1</li><li>Debian forky: no fix yet</li><li>Debian sid: below 1.2.0-4.1</li><li>Debian bullseye: below 1.0.9-2+deb11u1 (Freexian ELTS, paid)</li><li>Debian buster: below 1.0.7-2+deb10u2 (Freexian ELTS, paid)</li><li>Ubuntu 26.10: below 1.2.0-4ubuntu0.1</li><li>Ubuntu 26.04: below 1.2.0-3ubuntu0.1</li><li>Ubuntu 24.04: below 1.1.0-2ubuntu0.1</li><li>Ubuntu 22.04: below 1.0.9-2ubuntu0.1</li><li>Ubuntu 20.04: below 1.0.7-6ubuntu0.1+esm1 (Ubuntu Pro)</li><li>Ubuntu 18.04: below 1.0.3-1ubuntu1.3+esm1 (Ubuntu Pro)</li><li>Ubuntu 16.04: below 1.0.3-1ubuntu1~16.04.2+esm1 (Ubuntu Pro)</li></ul></td>
             <td class="good"><ul><li>Security update</li><li>Restart what links it</li></ul></td></tr>
@@ -338,6 +354,8 @@ footer { border-color: var(--rule); color: var(--muted); }
       </table>
     </div>
     <ul class="notes">
+      <li><strong>Electron:</strong> Electron links Chromium's Brotli, not Node.js's, so the Node.js version inside an app tells you nothing. Electron 42 is the first release built on Chromium 148, which carries the fix. Each app ships its own Electron, so the only fix is a new build of the app.</li>
+      <li><strong>curl:</strong> <code>curl -V</code> prints the upstream Brotli version, even when a distro has patched the library, so judge a system curl by the OS package. <code>git</code> and other libcurl users inherit the same library.</li>
       <li><strong>.NET:</strong> Microsoft also lists PowerShell 7.4, 7.5 and 7.6 (fixed in 7.4.22, 7.5.13 and 7.6.9) and Visual Studio 2019 16.11 (16.11.61), 2022 17.14 (17.14.43) and 2026 18.11 (18.11.2). Visual Studio 2017 15.9 has no fixed build listed.</li>
       <li><strong>Python:</strong> Scrapy, flask-compress, selenium-wire and django-compression-middleware depend on Brotli directly. <code>urllib3</code> (and so <code>requests</code>), <code>httpx</code> and <code>aiohttp</code> pull it in only through extras (<code>urllib3[brotli]</code>, <code>httpx[brotli]</code>, <code>aiohttp[speedups]</code>). They still decode Brotli whenever it is importable. <code>pipdeptree -r -p Brotli,brotlicffi --extras active</code> (pipdeptree 3.0+) shows what pulls it in.</li>
       <li><strong>Python wheels with their own Brotli:</strong> Pillow 13.0.0 wheels bundle libbrotli 1.2.0, and no fixed Pillow release exists yet. duckdb vendors an unfixed Brotli 1.1.0 decoder. The pip versions of these packages don't map to Brotli versions.</li>
@@ -365,14 +383,24 @@ footer { border-color: var(--rule); color: var(--muted); }
   </section>
 
   <section class="read" id="helper">
-    <h2>Automated checker</h2>
-    <p class="src"><a href="https://github.com/fieldse/brotli-node2shell-check"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span>Source on GitHub</span></a></p>
-    <p>We provide a free script that runs every check on this page against one machine in a single pass. With <code>-c</code> it also checks local Docker or Podman images. It reads files and makes no changes. Usage is in the <a href="https://github.com/fieldse/brotli-node2shell-check#readme">repository README</a>.</p>
-    <div class="code"><button type="button" id="copy-get">Copy</button><pre>git clone https://github.com/fieldse/brotli-node2shell-check.git
+    <h2>Vulnerability checker</h2>
+    <p>We've provided an open-source vulnerability checker that runs every check on this page against your machine in a single pass. It's read-only, makes no changes on your system. It reports vulnerable libraries, runtimes and packages. Usage is in the <a href="https://github.com/fieldse/brotli-node2shell-check#readme">repository README</a>.</p>
+    <p>It scans:</p>
+    <ul class="notes">
+      <li>Installed runtimes: Node.js, Bun, .NET and Electron apps</li>
+      <li>Project dependencies: Python, npm, Java, Ruby, Go and Rust</li>
+      <li>OS packages, <code>libbrotli</code> and curl</li>
+      <li>Vendored Brotli source and decoder copies bundled inside apps</li>
+      <li>Local Docker and Podman images</li>
+    </ul>
+    <p><strong>Usage</strong></p>
+    <div class="code"><button type="button" id="copy-get">Copy</button><pre># Get the script
+git clone https://github.com/fieldse/brotli-node2shell-check.git
 cd brotli-node2shell-check
-less scripts/vuln-check-CVE2026-111497-brotli.sh   # review before running</pre></div>
-    <p class="muted">View the script source: <a href="https://github.com/fieldse/brotli-node2shell-check/blob/main/scripts/vuln-check-CVE2026-111497-brotli.sh">vuln-check-CVE2026-111497-brotli.sh</a>.</p>
-    <div class="code"><button type="button" id="copy-script">Copy</button><pre>./scripts/vuln-check-CVE2026-111497-brotli.sh -r ~/src -q    # scan a source tree and report problems only
+less scripts/vuln-check-CVE2026-111497-brotli.sh   # review before running
+
+# Run it
+./scripts/vuln-check-CVE2026-111497-brotli.sh -r ~/src -q    # scan a source tree and report problems only
 ./scripts/vuln-check-CVE2026-111497-brotli.sh -r /srv -c     # also check local Docker or Podman images
 ./scripts/vuln-check-CVE2026-111497-brotli.sh -c -e podman   # set the engine (by default Docker, then Podman)
 ./scripts/vuln-check-CVE2026-111497-brotli.sh --help</pre></div>
@@ -380,8 +408,11 @@ less scripts/vuln-check-CVE2026-111497-brotli.sh   # review before running</pre>
       <dt class="fail">FAIL</dt><dd>A known-vulnerable version is present.</dd>
       <dt>WARN</dt><dd>Needs manual review.</dd>
     </dl>
-    <p>The script exits 1 on any <code>FAIL</code>. With <code>--strict</code> it also exits 1 on any <code>WARN</code>, so it can gate CI.</p>
-    <p class="muted">See <a href="tests.html">how the script is tested</a>.</p>
+    <p>The script exits 1 on any <code>FAIL</code>. With <code>--strict</code> it exits 1 on any <code>WARN</code>, so it can be used for a CI gate.</p>
+    <p><strong>Project source</strong></p>
+    <p class="src"><a href="https://github.com/fieldse/brotli-node2shell-check"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span>View at GitHub</span></a></p>
+    <p class="muted">View source: <a href="https://github.com/fieldse/brotli-node2shell-check/blob/main/scripts/vuln-check-CVE2026-111497-brotli.sh">vuln-check-CVE2026-111497-brotli.sh</a>.</p>
+    <p class="muted">Table of <a href="tests.html">what it checks</a>.</p>
   </section>
 
   <section class="read" id="mitigate">
@@ -427,8 +458,6 @@ less scripts/vuln-check-CVE2026-111497-brotli.sh   # review before running</pre>
       <li><a href="https://security.alpinelinux.org/vuln/CVE-2026-111497">Alpine security tracker</a></li>
       <li><a href="https://bodhi.fedoraproject.org/updates/?packages=brotli">Fedora Bodhi brotli updates</a></li>
       <li><a href="https://alas.aws.amazon.com/AL2023/ALAS2023-2026-3334.html">Amazon Linux ALAS2023-2026-3334</a></li>
-      <li><a href="https://github.com/envoyproxy/envoy/security/advisories/GHSA-3wvj-j6qm-62mr">Envoy GHSA-3wvj-j6qm-62mr</a></li>
-      <li><a href="https://istio.io/latest/news/security/istio-security-2026-007/">Istio ISTIO-SECURITY-2026-007</a></li>
     </ul>
   </section>
 
@@ -441,7 +470,7 @@ less scripts/vuln-check-CVE2026-111497-brotli.sh   # review before running</pre>
       <li><a href="https://socket.dev/blog/emudhra-brotli-security-fix">Socket: eMudhra, Brotli, and the long tail of a security fix</a><span>Why vendored copies keep the bug alive after the upstream fix.</span></li>
       <li><a href="https://www.aikido.dev/blog/node2shell-nodejs-brotli-rce-cve-2026-111497">Aikido: Node2Shell, Node.js Brotli RCE</a><span>The Node.js case and its exposure paths.</span></li>
       <li><a href="https://www.aikido.dev/blog/python-packages-vulnerable-node2shell-brotli-cve-2026-111497">Aikido: Python packages vulnerable, evolves to HTTP2Shell</a><span>Where the HTTP2Shell name comes from.</span></li>
-      <li><a href="https://www.wiz.io/blog/cve-2026-111497-brotli-rce-node-js">Wiz: Broccoli2Shell, everything you need to know</a><span>Overview across Node.js, Bun, Envoy and more.</span></li>
+      <li><a href="https://www.wiz.io/blog/cve-2026-111497-brotli-rce-node-js">Wiz: Broccoli2Shell, everything you need to know</a><span>Overview across Node.js, Bun and other affected software.</span></li>
       <li><a href="https://www.sysdig.com/blog/node2shell-cve-2026-111497-detecting-the-node-js-brotli-rce">Sysdig: Detecting the Node.js Brotli RCE</a><span>Runtime detection.</span></li>
       <li><a href="https://securityboulevard.com/2026/10/brotli2shell-frequently-asked-questions-for-google-brotli-decoder-vulnerability-cve-2026-111497/">Tenable: Brotli2Shell FAQ</a><span>Common questions, via Security Boulevard.</span></li>
       <li><a href="https://broccoli2shell.com/">broccoli2shell.com</a><span>Community tracker of affected projects.</span></li>
