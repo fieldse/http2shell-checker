@@ -1,0 +1,8 @@
+# Extends the global DevSec policy config and adds only allowlist exceptions (SEC-10).
+[extend]
+path = "@global"
+
+[[allowlists]]
+description = "Owner-authorised content on the guide pages (SEC-7)"
+targetRules = ["policy-sec7-term-1"]
+paths = ['''^(index|references|tests)\.html$''']
