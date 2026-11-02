@@ -355,7 +355,7 @@ footer { border-color: var(--rule); color: var(--muted); }
             <td class="good"><ul><li>Security update</li><li>Restart what links it</li></ul></td></tr>
           <tr><td>Other Linux</td><td class="check"><div class="cmd"><code>rpm -qa | grep brotli</code><button type="button" class="copy" aria-label="Copy command" title="Copy"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M3.5 11H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button></div><div class="cmd"><code>apk info -v | grep brotli</code><button type="button" class="copy" aria-label="Copy command" title="Copy"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M3.5 11H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button></div><div class="cmd"><code>pacman -Q brotli</code><button type="button" class="copy" aria-label="Copy command" title="Copy"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M3.5 11H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button></div></td>
             <td class="bad"><ul><li>Upstream 1.0.3 to 1.0.9, 1.1.0 or 1.2.0</li><li>Fedora, Arch, Alpine 3.21+, openSUSE Tumbleweed: the version is enough (they ship 1.1.1 or 1.2.1)</li><li>Alpine 3.20 and 3.19: no fix</li><li>Fedora 43: fix in updates-testing only</li><li>RHEL, AlmaLinux, Amazon Linux, SLE: compare the release string (see notes)</li></ul></td>
-            <td class="good"><ul><li>RHEL 10: <code>1.1.0-8.el10_2.1</code></li><li>RHEL 9: <code>1.0.9-10.el9_8.1</code></li><li>RHEL 8: <code>1.0.6-5.el8_10</code></li><li>Amazon Linux 2023: <code>1.1.0-1.amzn2023.0.2</code></li><li>SLE 15: no released fix yet</li><li>Restart what links it</li></ul></td></tr>
+            <td class="good"><ul><li>RHEL 10: <code>1.1.0-8.el10_2.1</code></li><li>RHEL 9: <code>1.0.9-10.el9_8.1</code></li><li>RHEL 8: <code>1.0.6-5.el8_10</code></li><li>Amazon Linux 2023: <code>1.1.0-1.amzn2023.0.2</code></li><li>SLE 15 SP4 to SP7: <code>1.0.7-150200.3.8.1</code></li><li>Restart what links it</li></ul></td></tr>
         </tbody>
       </table>
     </div>
@@ -393,7 +393,7 @@ footer { border-color: var(--rule); color: var(--muted); }
           <thead><tr><th>Case</th><th>What to know</th></tr></thead>
           <tbody>
             <tr><td>Version output</td><td><ul><li><code>curl -V</code> prints the upstream Brotli version, even when a distro has patched the library.</li><li>Judge a system curl by the OS package.</li></ul></td></tr>
-            <tr><td>Other users</td><td><ul><li><code>git</code> and other libcurl users inherit the same library.</li></ul></td></tr>
+            <tr><td>Other users</td><td><ul><li><code>git</code> and other dynamically linked libcurl users inherit the same library. Windows and static builds bundle their own.</li></ul></td></tr>
           </tbody>
         </table>
       </div>
@@ -418,7 +418,7 @@ footer { border-color: var(--rule); color: var(--muted); }
           <tbody>
             <tr><td>Direct dependents</td><td><ul><li>Scrapy, flask-compress, selenium-wire and django-compression-middleware depend on Brotli directly.</li></ul></td></tr>
             <tr><td>Through extras</td><td><ul><li><code>urllib3</code> (and so <code>requests</code>), <code>httpx</code> and <code>aiohttp</code> pull it in only through extras: <code>urllib3[brotli]</code>, <code>httpx[brotli]</code>, <code>aiohttp[speedups]</code>.</li><li>They still decode Brotli whenever it is importable.</li><li><code>pipdeptree -r -p Brotli,brotlicffi --extras active</code> (pipdeptree 3.0+) shows what pulls it in.</li></ul></td></tr>
-            <tr><td>Wheels with their own Brotli</td><td><ul><li>Pillow 13.0.0 wheels bundle libbrotli 1.2.0, and no fixed Pillow release exists yet.</li><li>duckdb vendors an unfixed Brotli 1.1.0 decoder.</li><li>The pip versions of these packages don't map to Brotli versions.</li></ul></td></tr>
+            <tr><td>Wheels with their own Brotli</td><td><ul><li>Pillow 13.0.0 wheels bundle libbrotli 1.2.0, and no fixed Pillow release exists yet.</li><li>duckdb vendors Brotli 1.1.0, below the fixed 1.1.1.</li><li>The pip versions of these packages don't map to Brotli versions.</li></ul></td></tr>
             <tr><td>Distro <code>python3-brotli</code></td><td><ul><li>Shows the upstream version even after patching.</li><li>Use the OS row.</li></ul></td></tr>
           </tbody>
         </table>
@@ -430,7 +430,7 @@ footer { border-color: var(--rule); color: var(--muted); }
         <table class="caveats">
           <thead><tr><th>Case</th><th>What to know</th></tr></thead>
           <tbody>
-            <tr><td><code>jvmbrotli</code></td><td><ul><li><code>com.nixxcode.jvmbrotli</code> is abandoned and bundles Brotli 1.0.7.</li><li>Replace it.</li></ul></td></tr>
+            <tr><td><code>jvmbrotli</code></td><td><ul><li><code>com.nixxcode.jvmbrotli</code> has had no release since 2019 and bundles Brotli 1.0.7.</li><li>Replace it.</li></ul></td></tr>
           </tbody>
         </table>
       </div>
@@ -465,7 +465,7 @@ footer { border-color: var(--rule); color: var(--muted); }
           <thead><tr><th>Case</th><th>What to know</th></tr></thead>
           <tbody>
             <tr><td><code>brotlic-sys</code></td><td><ul><li>Bundles Brotli 1.0.9.</li></ul></td></tr>
-            <tr><td><code>compu-brotli-sys</code></td><td><ul><li>1.2.1 and 1.0.10 bundle the unfixed 1.2.0 and 1.0.9 decoders despite their version numbers.</li><li>Its only fixed release, 1.2.0, is yanked.</li></ul></td></tr>
+            <tr><td><code>compu-brotli-sys</code></td><td><ul><li>1.2.1 and 1.0.10 bundle the unfixed 1.2.0 and 1.0.9 decoders despite their version numbers.</li><li>No release of the crate is fixed, and its 1.2.0 release is yanked.</li></ul></td></tr>
             <tr><td>Other <code>-sys</code> crates</td><td><ul><li>Judge them by their vendored source: fixed code contains <code>BROTLI_DECODER_ERROR_FORMAT_BLOCK_SWITCH</code>.</li><li>Grep <code>Cargo.lock</code>, because plain <code>cargo tree</code> shows only the host target.</li></ul></td></tr>
           </tbody>
         </table>
@@ -477,11 +477,11 @@ footer { border-color: var(--rule); color: var(--muted); }
         <table class="caveats">
           <thead><tr><th>Case</th><th>What to know</th></tr></thead>
           <tbody>
-            <tr><td>Debian and Ubuntu <code>nodejs</code></td><td><ul><li>Debian's package, and Ubuntu's on 22.04 and later, use the system <code>libbrotli</code>.</li><li><code>node --version</code> alone tells you nothing there. Check the Debian / Ubuntu row.</li></ul></td></tr>
+            <tr><td>Debian and Ubuntu <code>nodejs</code></td><td><ul><li>Debian's package, and Ubuntu's on 22.04 and later, use the system <code>libbrotli</code>.</li><li><code>node --version</code> alone tells you nothing there. Check the Debian / Ubuntu row.</li><li>Debian's tracker still lists <code>nodejs</code> as vulnerable on bookworm, trixie and forky. Only sid is fixed.</li></ul></td></tr>
             <tr><td>Ubuntu 20.04 <code>nodejs</code></td><td><ul><li>10.19 bundles its own Brotli and has no fix.</li><li>Updating <code>libbrotli1</code> doesn't cover it.</li></ul></td></tr>
             <tr><td>Debian bookworm</td><td><ul><li>No fixed build for armel, mips64el, mipsel or s390x.</li></ul></td></tr>
             <tr><td>RHEL, AlmaLinux, Amazon Linux, SLE</td><td><ul><li>They keep the old version number when they patch.</li><li>Compare the full release string (e.g. <code>1.0.9-10.el9_8.1</code>) against the vendor tracker, not the upstream version.</li></ul></td></tr>
-            <tr><td>Bundled copies on RPM distros</td><td><ul><li>Some packages bundle their own Brotli and won't show in <code>rpm -qa | grep brotli</code>.</li><li>Firefox, Thunderbird, and the RHEL 8/9 <code>nodejs:24</code> and <code>nodejs:26</code> modules.</li><li>On SUSE: ghostscript, qemu, ovmf, texlive and mozjs.</li></ul></td></tr>
+            <tr><td>Bundled copies on RPM distros</td><td><ul><li>Some packages bundle their own Brotli and won't show in <code>rpm -qa | grep brotli</code>.</li><li>Firefox, Thunderbird, and the RHEL 8/9 <code>nodejs:24</code> modules.</li><li>SUSE lists ghostscript, qemu, ovmf, texlive and mozjs as affected.</li></ul></td></tr>
           </tbody>
         </table>
       </div>
@@ -492,7 +492,7 @@ footer { border-color: var(--rule); color: var(--muted); }
         <table class="caveats">
           <thead><tr><th>Case</th><th>What to know</th></tr></thead>
           <tbody>
-            <tr><td>Silent scanners</td><td><ul><li>Bun, Brotli4j, the Ruby gem, curl_cffi, <code>andybalholm/brotli</code> and the Rust <code>-sys</code> crates have no entry in the GitHub Advisory Database, OSV, the Go vulnerability database or RustSec.</li><li>Dependabot, OSV-Scanner, govulncheck, bundler-audit and cargo audit won't flag them.</li></ul></td></tr>
+            <tr><td>Silent scanners</td><td><ul><li>Brotli4j, the Ruby gem, <code>curl_cffi</code> and the Rust <code>-sys</code> crates have no package-level advisory in the GitHub Advisory Database, OSV or RustSec.</li><li>Bun has a repository advisory (GHSA-663w-cv8g-jj2p) that is not in the global database yet. OSV lists Bun and <code>andybalholm/brotli</code> only as git ranges, which package scanners may not match.</li><li>Dependabot, OSV-Scanner, govulncheck, bundler-audit and cargo audit may miss all of these. Check the versions yourself.</li></ul></td></tr>
             <tr><td>Container images</td><td><ul><li>Run the same checks inside every image you ship, for example <code>docker run --rm --network=none &lt;image&gt; node --version</code> (or <code>podman run</code>).</li><li>Updating the host does not fix an image. Rebuild it.</li></ul></td></tr>
           </tbody>
         </table>
